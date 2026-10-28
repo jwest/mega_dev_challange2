@@ -1,0 +1,75 @@
+---
+layout: runbook
+title: '#4471 split · three problems, not one'
+owner: support desk
+status: open
+reviewed: 2026-10-28
+signature: v1.eyJzdWIiOiIzMzM1IiwiYXVkIjoiY2hhbGxlbmdlOndoYXQtaXQtc2hvd3MiLCJpYXQiOjE3OTMyMTMxMzgsImV4cCI6MTc5MzI5OTUzOH0.JnWP9qCd-wt_NSin5tkEl4BlJMLv1WLIUwD5AvLOGcQ
+---
+
+<script>
+  import ProblemTable from '#lib/kb/ProblemTable.svelte';
+  import ProblemCount from '#lib/kb/ProblemCount.svelte';
+  import Callout from '#lib/kb/Callout.svelte';
+  import RenderStamp from '#lib/kb/RenderStamp.svelte';
+
+  const TICKETS = {
+    parser: 'https://github.com/jwest/mega_dev_challange2/issues/1',
+    hint: 'https://github.com/jwest/mega_dev_challange2/issues/2',
+    shift: 'https://github.com/jwest/mega_dev_challange2/issues/3',
+  };
+</script>
+
+[#4471](/kb/incidents/4471) was merged as one issue: "the parser reads dates month first". The
+reports in it, <ProblemCount ticket={4471} /> of them, are about **three** different problems. Subject lines could not tell them apart (every one says "wrong day"), so dedupe by
+subject ([decision 0001](/kb/decisions/0001-dedupe-by-subject)) put them in one ticket.
+
+<Callout kind="warn">
+#4471 was closed on 5 October after one fix. Two of the three problems below are still open.
+</Callout>
+
+## What #4471 holds
+
+<ProblemTable ticket={4471} tickets={TICKETS} />
+
+Counts are unique reports: the ticket export repeats some reports across pages, so it has more
+rows than reports. A report belongs to a problem by its tenant and the way it came in, not by
+the tag intake gave it.
+
+## The three problems
+
+### `parser`: month read first · <ProblemCount ticket={4471} problem="parser" /> reports · <a href={TICKETS.parser}>ticket</a>
+
+The shared parser reads every date month first. Every tenant on file writes the day first, so
+any date with a day up to 12 comes out swapped: "booked 7 April, invite for 4 July".
+Engineering shipped `fix(dates): parse dd/mm for eu locales`. Check its scope before you tell a
+tenant it is fixed: our day-first tenants include en-GB and en-IE, and "eu locales" may not
+cover en-GB.
+
+### `hint`: booking-v3 form hint · <ProblemCount ticket={4471} problem="hint" /> reports · <a href={TICKETS.hint}>ticket</a>
+
+The booking-v3 form prints `MM/DD/YYYY` under its date field and reads the date day first.
+People type what the hint says. Only reports that came through the form of a booking-v3 tenant
+belong here: <ProblemCount ticket={4471} problem="hint" what="tenants" /> tenants. The parser fix
+does not touch it. Engineering answered "won't fix: booking-v3 form retired", but the tenant
+directory still lists these tenants on booking-v3. Until they move, it keeps happening.
+
+### `shift`: one day off · <ProblemCount ticket={4471} problem="shift" /> reports · <a href={TICKETS.shift}>ticket</a>
+
+Not a swap at all. The date moved by one day, or two people in different places got different
+days for one meeting. That points at time zones, not date order. The desk already read these as
+a one-day move (`desk-notes.json`), but the old table filed them under `parser` by tenant. No
+fix covers them.
+
+## For the desk
+
+- A new date report: check the tenant's form and the dates in the body before you merge.
+  Swapped day and month on booking-v3's form is `hint`; swapped elsewhere is `parser`; one day
+  off is `shift`.
+- Intake's tag is a guess from the browser: it is wrong on
+  <ProblemCount ticket={4471} problem="parser" what="mistagged" /> <code>parser</code>,
+  <ProblemCount ticket={4471} problem="hint" what="mistagged" /> <code>hint</code> and
+  <ProblemCount ticket={4471} problem="shift" what="mistagged" /> <code>shift</code> reports here.
+- Same subject does not mean same problem. Read the body when the subject is generic.
+
+<RenderStamp {signature} />
